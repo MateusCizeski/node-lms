@@ -1,0 +1,33 @@
+import type { IncomingMessage } from 'node:http';
+
+type HttpMethod = 'GET' | 'POST';
+
+export interface CustomRequest extends IncomingMessage {
+  method: HttpMethod;
+  query: URLSearchParams;
+  pathname: string;
+  body: Record<string, any>;
+  params: Record<string, any>;
+}
+
+export async function customRequest(request: IncomingMessage) {
+  const req = request as CustomRequest;
+  const url = new URL(req.url || '', 'http://localhost');
+  req.query = url.searchParams;
+  req.pathname = url.pathname;
+  req.params = {};
+
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
+  }
+  const body = Buffer.concat(chunks).toString('utf-8');
+
+  if (req.headers['content-type'] === 'application/json') {
+    req.body = JSON.parse(body);
+  } else {
+    req.body = {};
+  }
+
+  return req;
+}
