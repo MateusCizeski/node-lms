@@ -1,125 +1,28 @@
-import { DatabaseSync } from 'node:sqlite';
+import { DatabaseSync, type StatementSync } from "node:sqlite";
 
-const db = new DatabaseSync('./lms.sqlite');
+export class Database extends DatabaseSync {
+  queries: Record<string, StatementSync>;
 
-db.exec(`
-    PRAGMA foreign_keys = 1;
-    PRAGMA journal_mode = WAL;
-    PRAGMA synchronous = NORMAL;
+  constructor(path: string) {
+    super(path);
+    this.queries = {};
 
-    PRAGMA cache_size = 2000;
-    PRAGMA busy_timeout = 5000;
-    PRAGMA temp_store = MEMORY;
+    this.exec(`    
+      PRAGMA foreign_keys = 1;
+      PRAGMA journal_mode = WAL;
+      PRAGMA synchronous = NORMAL;
 
-    CREATE TABLE IF NOT EXISTS "cursos" (
-      "id" INTEGER PRIMARY KEY,
-      "slug" TEXT NOT NULL COLLATE NOCASE UNIQUE,
-      "nome" TEXT NOT NULL,
-      "descricao" TEXT NOT NULL
-    ) STRICT;
-
-    CREATE TABLE IF NOT EXISTS "aulas" (
-      "id" INTEGER PRIMARY KEY,
-      "curso_id" INTEGER NOT NULL,
-      "slug" TEXT NOT NULL COLLATE NOCASE,
-      "nome" TEXT NOT NULL,
-      FOREIGN KEY("curso_id") REFERENCES "cursos" ("id"),
-      UNIQUE("curso_id", "slug")
-    ) STRICT;
-  `);
-
-export function criarCurso({ slug, nome, descricao }) {
-  try {
-    return db
-      .prepare(
-        `
-    INSERT OR IGNORE INTO "cursos"
-      ("slug", "nome", "descricao")
-    VALUES
-      (?,?,?)
-    `,
-      )
-      .run(slug, nome, descricao);
-  } catch (error) {
-    console.log(error);
-    return null;
+      PRAGMA cache_size = 2000;
+      PRAGMA busy_timeout = 5000;
+      PRAGMA temp_store = MEMORY;
+    `);
   }
-}
 
-export function criarAula({ slug, nome, cursoSlug }) {
-  try {
-    return db
-      .prepare(
-        `
-    INSERT OR IGNORE INTO "aulas"
-      ("slug", "nome", "curso_id")
-    VALUES
-      (?,?,(SELECT "id" FROM "cursos" WHERE "slug" = ?))
-    `,
-      )
-      .run(slug, nome, cursoSlug);
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
+  query(sql: string) {
+    if (!this.queries[sql]) {
+      this.queries[sql] = this.prepare(sql);
+    }
 
-export function pegarCursos() {
-  try {
-    return db
-      .prepare(
-        `
-      SELECT * FROM "cursos"
-    `,
-      )
-      .all();
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
-
-export function pegarCurso(slug) {
-  try {
-    return db
-      .prepare(
-        `
-      SELECT * FROM "cursos" WHERE "slug" = ?
-    `,
-      )
-      .get(slug);
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
-
-export function pegarAulas(cursoSlug) {
-  try {
-    return db
-      .prepare(
-        `
-      SELECT * FROM "aulas" WHERE "curso_id" = (SELECT "id" FROM "cursos" WHERE "slug" = ?)
-    `,
-      )
-      .all(cursoSlug);
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
-
-export function pegarAula(cursoSlug, aulaSlug) {
-  try {
-    return db
-      .prepare(
-        `
-      SELECT * FROM "aulas" WHERE "curso_id" = (SELECT "id" FROM "cursos" WHERE "slug" = ?) AND "slug" = ?
-    `,
-      )
-      .get(cursoSlug, aulaSlug);
-  } catch (error) {
-    console.log(error);
-    return null;
+    return this.queries[sql];
   }
 }
