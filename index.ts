@@ -1,4 +1,4 @@
-import { Core } from './core/core.ts';
+import { Core } from "./core/core.ts";
 import {
   criarCurso,
   criarAula,
@@ -6,30 +6,24 @@ import {
   pegarCurso,
   pegarAulas,
   pegarAula,
-} from './core/database.ts';
+} from "./core/database.ts";
+import { bodyJson } from "./core/middleware/body-json.ts";
+import { logger } from "./core/middleware/logger.ts";
+import { RouteError } from "./core/utils/route-error.ts";
 
 const core = new Core();
 
-core.router.get('/curso/:curso', (req, res) => {
-  const slug = req.query.get('slug');
+core.router.use([logger]);
+
+core.router.get("/curso/:slug", (req, res) => {
+  const { slug } = req.params;
   const curso = pegarCurso(slug);
-  if (curso) {
-    res.status(200).json(curso);
-  } else {
-    res.status(404).json('curso não encontrado');
+
+  if (!curso) {
+    throw new RouteError(404, "Curso não encontrado.");
   }
-});
 
-core.router.get('/', (req, res) => {
-    res.status(200).json('ola');
+  res.status(200).json(curso);
 });
-
-core.router.get('/aula/:aula', (req, res) => {
-    res.status(200).json('aula');
-});
-
-core.router.get('/', (req, res) => {
-  res.status(200).end('Hello');
-})
 
 core.init();

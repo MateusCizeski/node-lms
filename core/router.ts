@@ -1,78 +1,85 @@
 import type { CustomRequest } from "./http/custom-request";
 import type { CustomResponse } from "./http/custom-response";
 
-type Handler = (req: CustomRequest, res: CustomResponse) => Promise<void> | void;
+export type Handler = (
+  req: CustomRequest,
+  res: CustomResponse,
+) => Promise<void> | void;
+export type Middleware = (
+  req: CustomRequest,
+  res: CustomResponse,
+) => Promise<void> | void;
 
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'HEAD';
+type Routes = {
+  [method: string]: {
+    [path: string]: {
+      handler: Handler;
+      middlewares: Middleware[];
+    };
+  };
+};
 
 export class Router {
-  routes: Record<HttpMethod, Record<string, Handler>> = {
+  routes: Routes = {
     GET: {},
     POST: {},
     PUT: {},
     DELETE: {},
     HEAD: {},
   };
+  middlewares: Middleware[] = [];
 
-  get(route: string, handler: Handler) {
-    this.routes.GET[route] = handler;
+  get(route: string, handler: Handler, middlewares: Middleware[] = []) {
+    this.routes["GET"][route] = { handler, middlewares };
   }
 
-  post(route: string, handler: Handler) {
-    this.routes.POST[route] = handler;
+  post(route: string, handler: Handler, middlewares: Middleware[] = []) {
+    this.routes["POST"][route] = { handler, middlewares };
   }
 
-  put(route: string, handler: Handler) {
-    this.routes.PUT[route] = handler;
+  put(route: string, handler: Handler, middlewares: Middleware[] = []) {
+    this.routes["PUT"][route] = { handler, middlewares };
   }
 
-  delete(route: string, handler: Handler) {
-    this.routes.DELETE[route] = handler;
+  delete(route: string, handler: Handler, middlewares: Middleware[] = []) {
+    this.routes["DELETE"][route] = { handler, middlewares };
   }
 
-  head(route: string, handler: Handler) {
-    this.routes.HEAD[route] = handler;
+  head(route: string, handler: Handler, middlewares: Middleware[] = []) {
+    this.routes["HEAD"][route] = { handler, middlewares };
   }
 
-  find(method: HttpMethod, pathname: string) {
+  use(middlewares: Middleware[]) {
+    this.middlewares.push(...middlewares);
+  }
+
+  find(method: string, pathname: string) {
     const routesByMethod = this.routes[method];
-
-    if(routesByMethod) return null;
-
+    if (!routesByMethod) return null;
     const matchedRoute = routesByMethod[pathname];
-
-    if(matchedRoute) return { route: matchedRoute, params: {} };
-
-    const reqParts = pathname.split('/').filter(Boolean);
-
-    for(const route of Object.keys(routesByMethod)) {
-      if(!route.includes(':')) continue;
-
-      const routeParts = pathname.split('/').filter(Boolean);
-
-      if(reqParts.length !== routeParts.length) continue;
-      
-      if(reqParts[0] !== routeParts[0]) continue;
+    if (matchedRoute) return { route: matchedRoute, params: {} };
+    const reqParts = pathname.split("/").filter(Boolean);
+    for (const route of Object.keys(routesByMethod)) {
+      if (!route.includes(":")) continue;
+      const routeParts = route.split("/").filter(Boolean);
+      if (reqParts.length !== routeParts.length) continue;
+      if (reqParts[0] !== routeParts[0]) continue;
 
       const params: Record<string, string> = {};
       let ok = true;
-
-      for(let i = 0; i < reqParts.length; i++) {
-        const segment = routeParts[i]
+      for (let i = 0; i < reqParts.length; i++) {
+        const segment = routeParts[i];
         const value = reqParts[i];
-
-        if(segment.startsWith(':')) {
+        if (segment.startsWith(":")) {
           params[segment.slice(1)] = value;
-        }else if(segment !== value) {
+        } else if (segment !== value) {
           ok = false;
           break;
         }
       }
-
-      if(ok) {
+      if (ok) {
         return { route: routesByMethod[route], params };
       }
-    
     }
 
     return null;
