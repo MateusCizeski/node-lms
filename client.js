@@ -183,7 +183,7 @@ const functions = {
 
   async getLesson() {
     const response = await fetch(
-      base + "/lms/lesson/javascript-completo/funcoes-basico",
+      base + "/lms/lesson/javascript-completo/eventos-no-navegador",
     );
     const body = await response.json();
     console.log(body);
@@ -194,8 +194,8 @@ const functions = {
 //   await functions.postLesson(lesson);
 // }
 
-// if (process.argv[2]) {
-//   functions[process.argv[2]]();
-// }
+if (process.argv[2]) {
+  functions[process.argv[2]]();
+}
 
 functions.getLesson();

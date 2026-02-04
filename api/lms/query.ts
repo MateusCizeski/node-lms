@@ -96,4 +96,15 @@ export class LmsQuery extends Query {
       )
       .get(courseSlug, lessonSlug) as LessonData | undefined;
   }
+
+  selectLessonNav(courseSlug: string, lessonSlug: string) {
+    return this.db
+      .prepare(
+        /*sql*/ `
+        SELECT "slug" FROM "lesson_nav"
+        WHERE "course_id" = (SELECT "id" FROM "courses" WHERE "slug" = ?)
+        AND "current_slug" = ?`,
+      )
+      .all(courseSlug, lessonSlug) as { slug: string }[];
+  }
 }
