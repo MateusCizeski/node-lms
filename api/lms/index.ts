@@ -136,7 +136,22 @@ export class LmsApi extends Api {
           throw new RouteError(400, "Erro ao completar aula.");
         }
 
-        res.status(201).json({ title: "Aula concluída." });
+        const progress = this.query.selectProgress(userId, courseId);
+        const incompleteLessons = progress.filter((item) => !item.completed);
+
+        if (incompleteLessons.length > 0 && incompleteLessons.length == 0) {
+          const certificate = this.query.insertCertificate(userId, courseId);
+
+          if (!certificate) {
+            throw new RouteError(400, "Erro ao gerar certificado.");
+          }
+          res
+            .status(201)
+            .json({ certificate: certificate.id, title: "aula concluída" });
+          return;
+        }
+
+        res.status(201).json({ certificate: null, title: "Aula concluída." });
       } catch (err) {
         res.status(400).json({ title: "Aula não encontrada." });
       }
