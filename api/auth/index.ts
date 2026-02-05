@@ -22,7 +22,7 @@ export class AuthApi extends Api {
         throw new RouteError(400, "Erro ao criar o usuário.");
       }
 
-      res.status(200).json({ title: "usuário criado" });
+      res.status(201).json({ title: "usuário criado" });
     },
   } satisfies Api["handlers"];
 

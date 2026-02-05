@@ -188,14 +188,56 @@ const functions = {
     const body = await response.json();
     console.log(body);
   },
+
+  async postUser() {
+    const response = await fetch(base + "/auth/user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Teste",
+        username: "teste",
+        email: "teste@teste.com",
+        password: "12345678",
+      }),
+    });
+    const body = await response.json();
+    console.table(body);
+  },
+
+  async postLessonComplete() {
+    const response = await fetch(base + "/lms/lesson/complete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        courseId: 1,
+        lessonId: 1,
+      }),
+    });
+    const body = await response.json();
+    console.table(body);
+  },
+
+  async resetCourse() {
+    const response = await fetch(base + "/lms/course/reset", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        courseId: 1,
+      }),
+    });
+    const body = await response.json();
+    console.table(body);
+  },
 };
 
 // for (const lesson of lessons) {
 //   await functions.postLesson(lesson);
 // }
 
-if (process.argv[2]) {
-  functions[process.argv[2]]();
-}
-
-functions.getLesson();
+functions.getCourse();

@@ -52,8 +52,6 @@ export class LmsApi extends Api {
         free,
       });
 
-      console.log(writeResult);
-
       if (writeResult.changes === 0) {
         throw new RouteError(400, "Erro ao criar aula.");
       }
@@ -84,7 +82,14 @@ export class LmsApi extends Api {
         throw new RouteError(404, "Nenhum curso encontrado.");
       }
 
-      res.status(200).json({ course, lessons });
+      const userId = 1;
+      let completed: { lessonId: number; completed: string }[] = [];
+
+      if (userId) {
+        completed = this.query.selectLessonsCompleted(userId, course.id);
+      }
+
+      res.status(200).json({ course, lessons, completed });
     },
 
     getLesson: (req, res) => {
@@ -100,7 +105,54 @@ export class LmsApi extends Api {
       const prev = i === 0 ? null : nav.at(i - 1)?.slug;
       const next = nav.at(i + 1)?.slug ?? null;
 
-      res.status(200).json({ ...lesson, nav, prev, next });
+      const userId = 1;
+      let completed = "";
+
+      if (userId) {
+        const lessonCompleted = this.query.selectLessonCompleted(
+          userId,
+          lesson.id,
+        );
+
+        if (lessonCompleted) {
+          completed = lessonCompleted.completed;
+        }
+      }
+
+      res.status(200).json({ ...lesson, nav, prev, next, completed });
+    },
+
+    postLessonComplete: (req, res) => {
+      try {
+        const userId = 1;
+        const { courseId, lessonId } = req.body;
+        const writeResult = this.query.insertLessonCompleted(
+          userId,
+          courseId,
+          lessonId,
+        );
+
+        if (writeResult.changes === 0) {
+          throw new RouteError(400, "Erro ao completar aula.");
+        }
+
+        res.status(201).json({ title: "Aula concluída." });
+      } catch (err) {
+        res.status(400).json({ title: "Aula não encontrada." });
+      }
+    },
+
+    resetCourse: (req, res) => {
+      const userId = 1;
+      const { courseId } = req.body;
+
+      const writeResult = this.query.deleteLessonsCompleted(userId, courseId);
+
+      if (writeResult.changes === 0) {
+        throw new RouteError(400, "Erro ao resetar curso.");
+      }
+
+      res.status(200).json({ title: "Curso resetado." });
     },
   } satisfies Api["handlers"];
 
@@ -112,10 +164,12 @@ export class LmsApi extends Api {
     this.router.post("/lms/course", this.handlers.postCourse);
     this.router.get("/lms/courses", this.handlers.getCourses);
     this.router.get("/lms/course/:slug", this.handlers.getCourse);
+    this.router.delete("/lms/course/reset", this.handlers.resetCourse);
     this.router.post("/lms/lesson", this.handlers.postLesson);
     this.router.get(
       "/lms/lesson/:courseSlug/:lessonSlug",
       this.handlers.getLesson,
     );
+    this.router.post("/lms/lesson/complete", this.handlers.postLessonComplete);
   }
 }
