@@ -169,6 +169,28 @@ export class LmsApi extends Api {
 
       res.status(200).json({ title: "Curso resetado." });
     },
+
+    getCertificates: (req, res) => {
+      const userId = 1;
+      const certificates = this.query.selectCertificates(userId);
+
+      if (certificates.length === 0) {
+        throw new RouteError(400, "Nenhum certificado encontrado.");
+      }
+
+      res.status(200).json(certificates);
+    },
+
+    getCertificate: (req, res) => {
+      const { certificateId } = req.params;
+      const certificate = this.query.selectCertificates(certificateId);
+
+      if (!certificate) {
+        throw new RouteError(400, "Nenhum certificado encontrado.");
+      }
+
+      res.status(200).json(certificate);
+    },
   } satisfies Api["handlers"];
 
   tables(): void {
@@ -186,5 +208,7 @@ export class LmsApi extends Api {
       this.handlers.getLesson,
     );
     this.router.post("/lms/lesson/complete", this.handlers.postLessonComplete);
+    this.router.get("/lms/certificates", this.handlers.getCertificates);
+    this.router.get("/lms/certificates/:id", this.handlers.getCertificate);
   }
 }
