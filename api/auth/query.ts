@@ -26,4 +26,15 @@ export class AuthQuery extends Query {
       )
       .run(name, username, email, role, password_hash);
   }
+
+  insertSession({ sid_hash, userId, expires_ms, ip, ua }) {
+    return this.db
+      .query(
+        /*sql*/ `
+      INSERT OR IGNORE INTO "sessions"
+      ("sid_hash", "user_id", "expires", "ip", "ua")
+      VALUES (?,?,?,?,?)`,
+      )
+      .run(sid_hash, userId, Math.floor(expires_ms / 1000), ip, ua);
+  }
 }

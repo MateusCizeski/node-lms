@@ -1,10 +1,12 @@
 import { Api } from "../../core/utils/abstract.ts";
 import { RouteError } from "../../core/utils/route-error.ts";
 import { AuthQuery } from "./query.ts";
+import { SessionService } from "./services/session.ts";
 import { authTables } from "./tables.ts";
 
 export class AuthApi extends Api {
   query = new AuthQuery(this.db);
+  session = new SessionService(this.core);
 
   handlers = {
     postUser: (req, res) => {
@@ -25,7 +27,7 @@ export class AuthApi extends Api {
       res.status(201).json({ title: "usuário criado" });
     },
 
-    postLogin: (req, res) => {
+    postLogin: async (req, res) => {
       const { email, password } = req.body;
       const user = this.db
         .query(
@@ -39,7 +41,13 @@ export class AuthApi extends Api {
         throw new RouteError(400, "Email ou senha incorretos.");
       }
 
-      res.setHeader("Set-Cookie", `sid=${user.id}; Path=/`);
+      const sid_hash = await this.session.create({
+        userId: user.id,
+        ip: req.ip,
+        ua: req.headers["user-agent"] ?? "",
+      });
+
+      res.setHeader("Set-Cookie", `sid=${sid_hash}; Path=/`);
 
       res.status(200);
     },
