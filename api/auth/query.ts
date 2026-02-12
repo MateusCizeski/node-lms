@@ -13,7 +13,20 @@ type UserData = {
   updated: string;
 };
 
+type SessionData = {
+  sid_hash: Buffer;
+  user_id: number;
+  created: number;
+  expires: number;
+  ip: string;
+  ua: string;
+  revoked: number;
+};
+
 type UserCreate = Omit<UserData, "id" | "created" | "updated">;
+type SessionCreate = Omit<SessionData, "created" | "revoked" | "expires"> & {
+  expires_ms: number;
+};
 
 export class AuthQuery extends Query {
   insertUser({ name, username, email, role, password_hash }: UserCreate) {
@@ -27,7 +40,7 @@ export class AuthQuery extends Query {
       .run(name, username, email, role, password_hash);
   }
 
-  insertSession({ sid_hash, userId, expires_ms, ip, ua }) {
+  insertSession({ sid_hash, user_id, expires_ms, ip, ua }: SessionCreate) {
     return this.db
       .query(
         /*sql*/ `
@@ -35,6 +48,6 @@ export class AuthQuery extends Query {
       ("sid_hash", "user_id", "expires", "ip", "ua")
       VALUES (?,?,?,?,?)`,
       )
-      .run(sid_hash, userId, Math.floor(expires_ms / 1000), ip, ua);
+      .run(sid_hash, user_id, Math.floor(expires_ms / 1000), ip, ua);
   }
 }

@@ -20,11 +20,12 @@ core.router.get("/", async (req, res) => {
 });
 
 core.router.get("/segura", async (req, res) => {
-  const sid = req.headers.cookie?.replace("sid=", "");
-  console.log(sid);
+  const sid = req.cookies["__Secure-sid="];
+
   if (!sid) {
     throw new RouteError(401, "não autenticado");
   }
+
   const sid_hash = sha256(sid);
   const session = core.db
     .query(`SELECT "user_id" FROM "sessions" WHERE "sid_hash" = ?`)
