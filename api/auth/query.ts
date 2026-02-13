@@ -50,4 +50,43 @@ export class AuthQuery extends Query {
       )
       .run(sid_hash, user_id, Math.floor(expires_ms / 1000), ip, ua);
   }
+
+  selectSession(sid_hash: Buffer) {
+    return this.db
+      .query(
+        /*sql*/ `
+        SELECT "s".*, "s"."expires" * 1000 as "expires_ms" FROM "sessions" as "s"
+         WHERE "sid_hash" = ?
+      `,
+      )
+      .get(sid_hash) as (SessionData & { expires_ms: number }) | undefined;
+  }
+
+  revokeSession(key: "sid_hash" | "user_id", sid_hash: Buffer) {
+    return this.db
+      .query(
+        /*sql*/ `
+       UPDATE "sessions" SET "revoked" = 1 WHERE ${key} = ?`,
+      )
+      .run(sid_hash);
+  }
+
+  updateSessionsExpires(sid_hash: Buffer, expires_ms: number) {
+    return this.db
+      .query(
+        /*sql*/ `
+       UPDATE "sessions" SET "expires" = ? WHERE "sid_hash" = ?`,
+      )
+      .run(Math.floor(expires_ms / 1000), sid_hash);
+  }
+
+  selectUserRole(id: number) {
+    return this.db
+      .query(
+        /*sql*/ `
+        SELECT "role" FROM "users" WHERE "id" = ?
+      `,
+      )
+      .get(id) as { role: UserRole } | undefined;
+  }
 }
