@@ -2,9 +2,11 @@ import { Api } from "../../core/utils/abstract.ts";
 import { RouteError } from "../../core/utils/route-error.ts";
 import { lmsTables } from "./tables.ts";
 import { LmsQuery } from "./query.ts";
+import { AuthMiddleware } from "../auth/middleware/auth.ts";
 
 export class LmsApi extends Api {
   query = new LmsQuery(this.db);
+  auth = new AuthMiddleware(this.core);
 
   handlers = {
     postCourse: (req, res) => {
@@ -82,11 +84,13 @@ export class LmsApi extends Api {
         throw new RouteError(404, "Nenhum curso encontrado.");
       }
 
-      const userId = 1;
       let completed: { lessonId: number; completed: string }[] = [];
 
-      if (userId) {
-        completed = this.query.selectLessonsCompleted(userId, course.id);
+      if (req.session) {
+        completed = this.query.selectLessonsCompleted(
+          req.session?.user_id,
+          course.id,
+        );
       }
 
       res.status(200).json({ course, lessons, completed });
@@ -200,7 +204,9 @@ export class LmsApi extends Api {
   routes(): void {
     this.router.post("/lms/course", this.handlers.postCourse);
     this.router.get("/lms/courses", this.handlers.getCourses);
-    this.router.get("/lms/course/:slug", this.handlers.getCourse);
+    this.router.get("/lms/course/:slug", this.handlers.getCourse, [
+      this.auth.optional,
+    ]);
     this.router.delete("/lms/course/reset", this.handlers.resetCourse);
     this.router.post("/lms/lesson", this.handlers.postLesson);
     this.router.get(
