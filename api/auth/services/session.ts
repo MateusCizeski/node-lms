@@ -72,4 +72,17 @@ export class SessionService extends CoreProvider {
       },
     };
   }
+
+  invalidate(sid: string | undefined) {
+    const cookie = sidCookie("", 0);
+
+    try {
+      if (sid) {
+        const sid_hash = sha256(sid);
+        this.query.revokeSession("sid_hash", sid_hash);
+      }
+    } catch {}
+
+    return { cookie };
+  }
 }

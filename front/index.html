@@ -60,6 +60,11 @@
           rgba(255, 255, 255, 0.1)
         );
       }
+
+      #logout {
+        max-width: 200px;
+        margin: 0 auto;
+      }
     </style>
 
     <form id="login">
@@ -70,11 +75,14 @@
       <button>Logar</button>
     </form>
 
+    <button id="logout">Logout</button>
+
     <pre id="result"></pre>
 
     <script>
       const form = document.getElementById("login");
       const result = document.getElementById("result");
+      const logout = document.getElementById("logout");
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -86,6 +94,24 @@
           },
           body: JSON.stringify(Object.fromEntries(data)),
         });
+        const body = await response.json();
+        result.innerText = JSON.stringify(body, null, 2);
+
+        if (response.ok) {
+          window.location.reload();
+        }
+      });
+
+      logout.addEventListener("click", async (e) => {
+        e.preventDefault();
+
+        const response = await fetch("/auth/logout", {
+          method: "DELETE",
+        });
+
+        if (response.ok) {
+          window.location.reload();
+        }
       });
 
       async function autenticado() {
