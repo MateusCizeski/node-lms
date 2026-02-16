@@ -1,6 +1,6 @@
 import { CoreProvider } from "../../../core/utils/abstract.ts";
 import { AuthQuery } from "../query.ts";
-import { randomBytesAsync, sha256 } from "../utils.ts";
+import { randomBytesAsync, sha256 } from "../utils/utils.ts";
 
 const ttlSec = 60 * 60 * 24 * 15;
 const ttlSec5Days = 60 * 60 * 24 * 5;
@@ -12,7 +12,15 @@ function sidCookie(sid: string, expires: number) {
 
 export class SessionService extends CoreProvider {
   query = new AuthQuery(this.db);
-  async create({ user_id, ip, ua }: any) {
+  async create({
+    user_id,
+    ip,
+    ua,
+  }: {
+    user_id: number;
+    ip: string;
+    ua: string;
+  }) {
     const sid = (await randomBytesAsync(32)).toString("base64url");
     const sid_hash = sha256(sid);
     const expires_ms = Date.now() + ttlSec * 1000;
@@ -39,7 +47,7 @@ export class SessionService extends CoreProvider {
     let expires_ms = session.expires_ms;
 
     if (now >= expires_ms) {
-      this.query.revokeSession("sid_hash", sid_hash);
+      this.query.revokeSession(sid_hash);
       return {
         valid: false,
         cookie: sidCookie("", 0),
@@ -55,7 +63,7 @@ export class SessionService extends CoreProvider {
     const user = this.query.selectUserRole(session.user_id);
 
     if (!user) {
-      this.query.revokeSession("sid_hash", sid_hash);
+      this.query.revokeSession(sid_hash);
       return {
         valid: false,
         cookie: sidCookie("", 0),
@@ -79,10 +87,49 @@ export class SessionService extends CoreProvider {
     try {
       if (sid) {
         const sid_hash = sha256(sid);
-        this.query.revokeSession("sid_hash", sid_hash);
+        this.query.revokeSession(sid_hash);
       }
     } catch {}
 
     return { cookie };
+  }
+
+  invalidateAll(userId: number) {
+    this.query.revokeSessions(userId);
+  }
+
+  async resetToken({
+    user_id,
+    ip,
+    ua,
+  }: {
+    user_id: number;
+    ip: string;
+    ua: string;
+  }) {
+    const token = (await randomBytesAsync(32)).toString("base64url");
+    const token_hash = sha256(token);
+    const expires_ms = Date.now() + 1000 * 60 * 30;
+    this.query.insertReset({ token_hash, expires_ms, user_id, ip, ua });
+
+    return { token };
+  }
+
+  validateToken(token: string) {
+    const now = Date.now();
+    const token_hash = sha256(token);
+    const reset = this.query.selectReset(token_hash);
+
+    if (!reset) {
+      return null;
+    }
+
+    if (now > reset.expires_ms) {
+      return null;
+    }
+
+    this.query.revokeSessions(reset.user_id);
+    this.query.deleteReset(reset.user_id);
+    return { user_id: reset.user_id };
   }
 }
