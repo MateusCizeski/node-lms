@@ -19,6 +19,7 @@ function number(x: unknown) {
 
   if (typeof x === "string" && x.trim().length !== 0) {
     const n = Number(x);
+
     return Number.isFinite(n) ? n : undefined;
   }
 
@@ -59,7 +60,7 @@ function password(x: unknown) {
   return password_re.test(x) ? x : undefined;
 }
 
-type Parse<Value> = (x: unknown) => Value | unknown;
+type Parse<Value> = (x: unknown) => Value | undefined;
 
 function required<Value>(fn: Parse<Value>, error: string) {
   return (x: unknown) => {
@@ -72,11 +73,11 @@ function required<Value>(fn: Parse<Value>, error: string) {
 
 export const validate = {
   string: required(string, "string esperada"),
-  number: required(string, "number esperada"),
-  boolean: required(string, "boolean esperada"),
-  object: required(string, "object esperada"),
-  email: required(string, "email esperada"),
-  password: required(string, "password esperada"),
+  number: required(number, "número esperado"),
+  boolean: required(boolean, "boolean esperada"),
+  object: required(object, "objeto esperado"),
+  email: required(email, "email inválido"),
+  password: required(password, "password inválido"),
   optional: {
     string,
     number,

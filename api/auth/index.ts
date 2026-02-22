@@ -5,6 +5,8 @@ import { COOKIE_SID_KEY, SessionService } from "./services/session.ts";
 import { authTables } from "./tables.ts";
 import { AuthMiddleware } from "./middleware/auth.ts";
 import { Password } from "./utils/password.ts";
+import { validate } from "../../core/utils/validate.ts";
+
 export class AuthApi extends Api {
   query = new AuthQuery(this.db);
   session = new SessionService(this.core);
@@ -13,9 +15,15 @@ export class AuthApi extends Api {
 
   handlers = {
     postUser: async (req, res) => {
-      const { name, username, email, password } = req.body;
+      const { name, username, email, password } = {
+        name: validate.string(req.body.name),
+        username: validate.string(req.body.username),
+        email: validate.email(req.body.email),
+        password: validate.password(req.body.password),
+      };
 
       const emailExists = this.query.selectUser("email", email);
+
       if (!emailExists) {
         throw new RouteError(409, "Email existente.");
       }
@@ -26,6 +34,7 @@ export class AuthApi extends Api {
       }
 
       const password_hash = await this.pass.hash(password);
+
       const writeResult = this.query.insertUser({
         name,
         username,
@@ -42,7 +51,11 @@ export class AuthApi extends Api {
     },
 
     postLogin: async (req, res) => {
-      const { email, password } = req.body;
+      const { email, password } = {
+        email: validate.email(req.body.email),
+        password: validate.password(req.body.password),
+      };
+
       const user = this.query.selectUser("email", email);
 
       if (!user) {
@@ -88,7 +101,10 @@ export class AuthApi extends Api {
     },
 
     updatePassword: async (req, res) => {
-      const { password, new_password } = req.body;
+      const { password, new_password } = {
+        password: validate.password(req.body.password),
+        new_password: validate.password(req.body.new_password),
+      };
 
       if (!req.session) {
         throw new RouteError(401, "Não autorizado.");
@@ -133,7 +149,10 @@ export class AuthApi extends Api {
     },
 
     passwordForgot: async (req, res) => {
-      const { email } = req.body;
+      const { email } = {
+        email: validate.email(req.body.email),
+      };
+
       const user = this.query.selectUser("email", email);
 
       if (!user) {
@@ -159,7 +178,11 @@ export class AuthApi extends Api {
     },
 
     passwordReset: async (req, res) => {
-      const { new_password, token } = req.body;
+      const { token, new_password } = {
+        token: validate.string(req.body.token),
+        new_password: validate.password(req.body.new_password),
+      };
+
       const reset = this.session.validateToken(token);
 
       if (!reset) {

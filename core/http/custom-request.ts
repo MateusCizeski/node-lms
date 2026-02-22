@@ -8,8 +8,8 @@ export interface CustomRequest extends IncomingMessage {
   method: HttpMethod;
   query: URLSearchParams;
   pathname: string;
-  body: Record<string, any>;
-  params: Record<string, any>;
+  body: Record<string, unknown>;
+  params: Record<string, string>;
   cookies: Record<string, string | undefined>;
   session: { user_id: number; role: UserRole; expires_ms: number } | null;
   ip: string;

@@ -5,7 +5,7 @@ type CourseData = {
   slug: string;
   title: string;
   description: string;
-  lessons: string;
+  lessons: number;
   hours: number;
   created: string;
 };
