@@ -5,6 +5,7 @@ export type Handler = (
   req: CustomRequest,
   res: CustomResponse,
 ) => Promise<void> | void;
+
 export type Middleware = (
   req: CustomRequest,
   res: CustomResponse,
